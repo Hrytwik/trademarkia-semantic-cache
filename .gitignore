@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Virtual env
+.venv/
+env/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Data / artifacts (keep only small needed ones if you want)
+artifacts/*.npy
+artifacts/*.pkl
+
+# Chroma index
+chroma_20newsgroups/
