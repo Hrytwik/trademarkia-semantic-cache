@@ -46,18 +46,22 @@ def run_config(name, threshold, allow_cross_cluster, gmm, embedder, test_queries
 
     for q in test_queries:
         result, meta = cache.get(q)
-        if not meta["hit"]:
+        is_hit = bool(meta.get("hit", meta.get("cache_hit", False)))
+
+        if not is_hit:
             # simulate expensive computation
             dummy_result = f"Top docs for: {q}"
             cache.add(q, dummy_result)
             print(f"MISS | '{q}'")
         else:
-            sim = meta.get("similarity", None)
+            sim = meta.get("similarity_score")
+            sim_str = f"{sim:.3f}" if sim is not None else "n/a"
             matched_q = meta.get("matched_query", "")
+            reason = meta.get("reason", "")
             print(
                 f"HIT  | '{q}' "
                 f"-> reused result for '{matched_q}' "
-                f"(sim={sim:.3f}, reason={meta['reason']})"
+                f"(sim={sim_str}, reason={reason})"
             )
 
     stats = cache.get_stats()
@@ -67,6 +71,7 @@ def run_config(name, threshold, allow_cross_cluster, gmm, embedder, test_queries
         f"hit_rate={stats['hit_rate']:.1%}, "
         f"entries={stats['total_entries']}"
     )
+
 
 
 def main():

@@ -7,6 +7,7 @@ from collections import defaultdict, deque
 import uuid
 import time
 
+
 class CacheEntry:
     """Simple container for cached query information."""
 
@@ -15,7 +16,7 @@ class CacheEntry:
         query_text: str,
         embedding: np.ndarray,
         cluster_probs: np.ndarray,
-        result: Any,  # Changed to Any for FastAPI list storage
+        result: Any,  # Any so we can store lists/dicts for FastAPI
         timestamp: float,
     ):
         self.id = str(uuid.uuid4())
@@ -25,12 +26,14 @@ class CacheEntry:
         self.result = result
         self.timestamp = timestamp  # for possible LRU logic later
 
+
 def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
     """Cosine similarity between two vectors."""
     denom = (np.linalg.norm(a) * np.linalg.norm(b))
     if denom == 0.0:
         return 0.0
     return float(np.dot(a, b) / denom)
+
 
 class SemanticCache:
     """
@@ -137,13 +140,13 @@ class SemanticCache:
 
         Returns:
           result: cached result or None
-          metadata: {
-            'cache_hit': bool,
-            'matched_query': str (on hit),
-            'similarity_score': float (on hit),
-            'dominant_cluster': int,
-            'reason': str (debug)
-          }
+          metadata: always includes
+            - 'hit': bool
+            - 'cache_hit': bool  (alias, for FastAPI/debug)
+            - 'matched_query': str or None
+            - 'similarity_score': float or None
+            - 'dominant_cluster': int
+            - 'reason': str
         """
         self.total_queries += 1
 
@@ -156,6 +159,7 @@ class SemanticCache:
         if match and match.similarity >= self.similarity_threshold:
             self.hit_count += 1
             return match.entry.result, {
+                "hit": True,
                 "cache_hit": True,
                 "matched_query": match.entry.query_text,
                 "similarity_score": float(match.similarity),
@@ -173,6 +177,7 @@ class SemanticCache:
             if match and match.similarity >= self.similarity_threshold:
                 self.hit_count += 1
                 return match.entry.result, {
+                    "hit": True,
                     "cache_hit": True,
                     "matched_query": match.entry.query_text,
                     "similarity_score": float(match.similarity),
@@ -183,6 +188,7 @@ class SemanticCache:
         # miss
         self.miss_count += 1
         return None, {
+            "hit": False,
             "cache_hit": False,
             "matched_query": None,
             "similarity_score": float(match.similarity) if match else None,
@@ -190,7 +196,7 @@ class SemanticCache:
             "reason": "no semantic match above threshold",
         }
 
-    def add(self, query_text: str, result: Any) -> None:  # Changed to Any
+    def add(self, query_text: str, result: Any) -> None:
         """
         Add a new query+result to cache.
 
